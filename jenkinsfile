@@ -33,17 +33,27 @@ pipeline {
         }
 
         stage('Deploy to Swarm') {
-            steps {
-                sh '''
-                  docker swarm init || true
-                  docker service ls | grep webservice
-                  docker service update --image ${IMAGE_NAME}:${IMAGE_TAG} --replicas 3 webservice
-              
-                  docker service create --name webservice --replicas 3 -p 8081:80 ${IMAGE_NAME}:${IMAGE_TAG}
-        
-                '''
-            }
-        }
+    steps {
+        sh '''
+        # Initialize swarm if not already
+        docker swarm init || true
+
+        # Check if service exists
+        if docker service ls | grep webservice; then
+            echo "🔄 Updating existing service..."
+            docker service update --image pavanimadhavarapu/static-website:${BUILD_NUMBER} --replicas 3 webservice
+        else
+            echo "🚀 Creating new service..."
+            docker service create \
+                --name webservice \
+                --publish 8081:80 \
+                --replicas 3 \
+                pavanimadhavarapu/static-website:${BUILD_NUMBER}
+        fi
+        '''
+    }
+}
+
 
     }
 }
