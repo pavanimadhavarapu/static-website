@@ -35,15 +35,16 @@ pipeline {
         stage('Deploy to Swarm') {
             steps {
                 sh '''
-                docker swarm init || true
-                if docker service ls | grep static-website; then
-                    docker service update --image ${IMAGE_NAME}:${IMAGE_TAG} --replicas 3 static-website
-                else
-                    docker service create --name static-website --replicas 3 -p 8081:80 ${IMAGE_NAME}:${IMAGE_TAG}
-                fi
+                  docker swarm init || true
+                  docker service ls | grep webservice
+                  docker service update --image ${IMAGE_NAME}:${IMAGE_TAG} --replicas 3 webservice
+              
+                  docker service create --name webservice --replicas 3 -p 8081:80 ${IMAGE_NAME}:${IMAGE_TAG}
+        
                 '''
             }
         }
+
     }
 }
 
