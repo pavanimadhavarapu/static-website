@@ -1,11 +1,15 @@
 pipeline {
     agent any
+
     environment {
         REGISTRY = "docker.io"
         DOCKERHUB_NAMESPACE = "pavanimadhavarapu"
         IMAGE_NAME = "${DOCKERHUB_NAMESPACE}/static-website"
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKERHUB_CRED = "dockerhub-cred"
+        HOST_PORT = "8085"          // external port (change as you need)
+        CONTAINER_PORT = "80"       // container's internal port
+        CONTAINER_NAME = "staticwebsite"
     }
 
     stages {
@@ -17,7 +21,8 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest"
             }
         }
 
@@ -27,34 +32,23 @@ pipeline {
                     sh '''
                       echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                       docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                      docker push ${IMAGE_NAME}:latest
                     '''
                 }
             }
         }
 
-        stage('Deploy to Swarm') {
-    steps {
-        sh '''
-        # Initialize swarm if not already
-        docker swarm init || true
+        stage('Deploy Container') {
+            steps {
+                sh '''
+                  # Stop & remove old container if running
+                  docker rm -f ${CONTAINER_NAME} || true
 
-        # Check if service exists
-        if docker service ls | grep webservice; then
-            echo "🔄 Updating existing service..."
-            docker service update --image pavanimadhavarapu/static-website:${BUILD_NUMBER} --replicas 3 webservice
-        else
-            echo "🚀 Creating new service..."
-            docker service create \
-                --name webservice \
-                --publish 8081:80 \
-                --replicas 3 \
-                pavanimadhavarapu/static-website:${BUILD_NUMBER}
-        fi
-        '''
-    }
-}
-
-
+                  # Run new container
+                  docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
     }
 }
 
