@@ -7,8 +7,8 @@ pipeline {
         IMAGE_NAME = "${DOCKERHUB_NAMESPACE}/static-website"
         IMAGE_TAG = "${BUILD_NUMBER}"
         DOCKERHUB_CRED = "dockerhub-cred"
-        HOST_PORT = "8085"          // external port (change as you need)
-        CONTAINER_PORT = "80"       // container's internal port
+        HOST_PORT = "8083"          // changed from 8085 to 8083
+        CONTAINER_PORT = "80"
         CONTAINER_NAME = "staticwebsite"
     }
 
@@ -44,7 +44,7 @@ pipeline {
                   # Stop & remove old container if running
                   docker rm -f ${CONTAINER_NAME} || true
 
-                  # Run new container
+                  # Run new container on host port 8083
                   docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
